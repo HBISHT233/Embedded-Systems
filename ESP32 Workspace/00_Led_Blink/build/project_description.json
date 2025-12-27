@@ -1,7 +1,7 @@
 {
     "version":            "1.1",
     "project_name":       "00_Led_Blink",
-    "project_version":    "7853b73",
+    "project_version":    "5920f9b-dirty",
     "project_path":       "E:/Embedded-Systems/ESP32 Workspace/00_Led_Blink",
     "idf_path":           "E:/Espressif/frameworks/esp-idf-v5.3.1",
     "build_dir":          "E:/Embedded-Systems/ESP32 Workspace/00_Led_Blink/build",
