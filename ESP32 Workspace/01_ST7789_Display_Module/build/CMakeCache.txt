@@ -23,12 +23,6 @@
 //Value Computed by CMake
 01_ST7789_Display_Module_SOURCE_DIR:STATIC=E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module
 
-//No help, variable specified on the command line.
-CCACHE_ENABLE:UNINITIALIZED=1
-
-//Path to a program.
-CCACHE_FOUND:FILEPATH=E:/Espressif/tools/ccache/4.8/ccache-4.8-windows-x86_64/ccache.exe
-
 //Path to a program.
 CMAKE_ADDR2LINE:FILEPATH=E:/Espressif/tools/riscv32-esp-elf/esp-13.2.0_20240530/riscv32-esp-elf/bin/riscv32-esp-elf-addr2line.exe
 
@@ -359,10 +353,10 @@ Mbed TLS_IS_TOP_LEVEL:STATIC=OFF
 Mbed TLS_SOURCE_DIR:STATIC=E:/Espressif/frameworks/esp-idf-v5.3.1/components/mbedtls/mbedtls
 
 //No help, variable specified on the command line.
-PYTHON:UNINITIALIZED=E:\Espressif\python_env\idf5.3_py3.8_env\Scripts\python.exe
+PYTHON_DEPS_CHECKED:UNINITIALIZED=1
 
 //No help, variable specified on the command line.
-PYTHON_DEPS_CHECKED:UNINITIALIZED=1
+SDKCONFIG:UNINITIALIZED=e:\Embedded-Systems\ESP32 Workspace\01_ST7789_Display_Module\sdkconfig
 
 //Allow unsafe builds. These builds ARE NOT SECURE.
 UNSAFE_BUILD:BOOL=OFF
@@ -591,15 +585,15 @@ C_COMPILER_SUPPORTS_WFORMAT_SIGNEDNESS:INTERNAL=1
 //Details about finding Git
 FIND_PACKAGE_MESSAGE_DETAILS_Git:INTERNAL=[C:/Program Files/Git/cmd/git.exe][v2.52.0.windows.1()]
 //Details about finding Python3
-FIND_PACKAGE_MESSAGE_DETAILS_Python3:INTERNAL=[E:/Espressif/python_env/idf5.3_py3.8_env/Scripts/python.exe][cfound components: Interpreter ][v3.8.8()]
+FIND_PACKAGE_MESSAGE_DETAILS_Python3:INTERNAL=[E:/Espressif/python_env/idf5.3_py3.11_env/Scripts/python.exe][cfound components: Interpreter ][v3.11.2()]
 //Details about finding Threads
 FIND_PACKAGE_MESSAGE_DETAILS_Threads:INTERNAL=[TRUE][v()]
 //ADVANCED property for variable: GIT_EXECUTABLE
 GIT_EXECUTABLE-ADVANCED:INTERNAL=1
 //CMAKE_INSTALL_PREFIX during last run
 _GNUInstallDirs_LAST_CMAKE_INSTALL_PREFIX:INTERNAL=C:/Program Files (x86)/01_ST7789_Display_Module
-_Python3_EXECUTABLE:INTERNAL=E:/Espressif/python_env/idf5.3_py3.8_env/Scripts/python.exe
+_Python3_EXECUTABLE:INTERNAL=E:/Espressif/python_env/idf5.3_py3.11_env/Scripts/python.exe
 //Python3 Properties
-_Python3_INTERPRETER_PROPERTIES:INTERNAL=Python;3;8;8;32;;;C:\Users\himan\AppData\Local\Programs\Python\Python38\Lib;C:\Users\himan\AppData\Local\Programs\Python\Python38\Lib;E:\Espressif\python_env\idf5.3_py3.8_env\Lib\site-packages;E:\Espressif\python_env\idf5.3_py3.8_env\Lib\site-packages
-_Python3_INTERPRETER_SIGNATURE:INTERNAL=725c43509d0c49bcfe838b4ddc2db48b
+_Python3_INTERPRETER_PROPERTIES:INTERNAL=Python;3;11;2;32;;;E:\Espressif\tools\idf-python\3.11.2\Lib;E:\Espressif\tools\idf-python\3.11.2\Lib;E:\Espressif\python_env\idf5.3_py3.11_env\Lib\site-packages;E:\Espressif\python_env\idf5.3_py3.11_env\Lib\site-packages
+_Python3_INTERPRETER_SIGNATURE:INTERNAL=8dd99f04be519f495ead08b25cbfd549
 

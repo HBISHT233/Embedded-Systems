@@ -1,0 +1,257 @@
+#include "st7789.h"
+#include "esp_log.h"
+static const char *TAG = "ST7789";
+spi_device_handle_t spi;        // handle from spi_master.h esp driver
+/*
+typedef struct spi_device_t *spi_device_handle_t;  ///< Handle for a device on a SPI bus
+struct spi_device_t {
+
+    int id;
+    QueueHandle_t trans_queue;
+    QueueHandle_t ret_queue;
+    spi_device_interface_config_t cfg;
+    spi_hal_dev_config_t hal_dev;
+    spi_host_t *host;
+    spi_bus_lock_dev_handle_t dev_lock;
+
+};
+
+
+typedef struct spi_transaction_t spi_transaction_t;
+spi_transaction_t = [flags, cmd, addr, length, rxlength, *user, union{*tx_buffer,tx_data}, union{*rx_buffer, rx_data}]
+*/
+
+// Send a command to the LCD
+void lcd_cmd(const uint8_t cmd)
+{
+    esp_err_t ret;              //Will store the return status (success/error)
+    spi_transaction_t t;        //SPI transaction structure that holds all transmission info
+    memset(&t, 0, sizeof(t));   //Sets all bytes in structure t to zero
+    t.length = 8;               //Number of bits to transmit  8=1byte  if sending 2 bytes use t.length = 16
+    t.tx_buffer = &cmd;         // "tx_buffer" Pointer to the data to send &cmd = address of command byte 
+    t.user = (void*)0;          // D/C needs to be set to 0 for command  [This value is used in the callback function to set the DC pin]
+    ret = spi_device_polling_transmit(spi, &t);     //Sends data and waits until complete (blocking)
+                                                    //spi = The SPI device handle (our display)
+                                                    //&t = Pointer to transaction structure
+                                                    //ret = Stores the result (ESP_OK if successful)
+    assert(ret == ESP_OK);      //If condition is false, program crashes with error message
+}
+
+// Send data to the LCD
+void lcd_data(const uint8_t *data, int len)
+{
+    esp_err_t ret;          //store return status
+    spi_transaction_t t;    //SPI transaction structure
+    if (len == 0) return;   
+    memset(&t, 0, sizeof(t));   //set all bytes to zero(0)
+    t.length = len * 8;         // 8 bits to transmit
+    t.tx_buffer = data;         //data to transmit
+    t.user = (void*)1; // D/C needs to be set to 1  [within the structure (spi_transaction_t t) we are using "user" bit for DC]
+    ret = spi_device_polling_transmit(spi, &t);     //send the data
+    assert(ret == ESP_OK); //error check
+}
+
+/*
+DC pin simply means Data/Command
+DC = 0 (LOW) → Command
+DC = 1 (High)→ Data
+
+You can also observe lcd_cmd function t.user = 0 (Command)
+and lcd_data function t.user = 1 (Data)
+*/
+
+// This function is called before a transmission to set the D/C line
+void lcd_spi_pre_transfer_callback(spi_transaction_t *t)
+{
+    int dc = (int)t->user;  //within the structure (spi_transaction_t t) we are using "user" bit for DC pin
+    gpio_set_level(PIN_NUM_DC, dc);
+}
+
+
+// Draw a single character at x, y position
+void lcd_draw_char(uint16_t x, uint16_t y, char c, uint16_t color, uint16_t bg_color)
+{
+    // Check if character is in supported range
+    if (c < 32 || c > 126) {
+        c = '?';  // Replace unsupported characters with ?
+    }
+    
+    // Boundary check
+    if (x + FONT_WIDTH > LCD_WIDTH || y + FONT_HEIGHT > LCD_HEIGHT) {
+        return;
+    }
+    
+    // Get character bitmap
+    const uint8_t *char_bitmap = font_5x7[c - 32];
+    
+    // Set window for the character
+    lcd_set_window(x, y, x + FONT_WIDTH - 1, y + FONT_HEIGHT - 1);
+    
+    // Allocate buffer for the character
+    uint16_t *char_buf = heap_caps_malloc(FONT_WIDTH * FONT_HEIGHT * sizeof(uint16_t), MALLOC_CAP_DMA);
+    if (char_buf == NULL) {
+        ESP_LOGE(TAG, "Failed to allocate char buffer");
+        return;
+    }
+    
+    // Swap bytes for RGB565
+    uint16_t swapped_color = (color >> 8) | (color << 8);
+    uint16_t swapped_bg = (bg_color >> 8) | (bg_color << 8);
+    
+    // Draw character bitmap
+    int idx = 0;
+    for (int row = 0; row < FONT_HEIGHT; row++) {
+        for (int col = 0; col < FONT_WIDTH; col++) {
+            // Check if pixel should be set (bit is 1)
+            if (char_bitmap[col] & (1 << row)) {
+                char_buf[idx++] = swapped_color;
+            } else {
+                char_buf[idx++] = swapped_bg;
+            }
+        }
+    }
+    
+    // Send character data
+    lcd_data((uint8_t*)char_buf, FONT_WIDTH * FONT_HEIGHT * 2);
+    
+    heap_caps_free(char_buf);
+}
+
+// Initialize the display
+void lcd_init(void)
+{
+    // Hardware reset
+    gpio_set_level(PIN_NUM_RST, 0);  // 0 = Low    Pull RST LOW  → Hold display in reset
+    vTaskDelay(pdMS_TO_TICKS(100));
+    gpio_set_level(PIN_NUM_RST, 1);  // 1 = HIGH   Pull RST HIGH → Release from reset, display starts up
+    vTaskDelay(pdMS_TO_TICKS(100));
+
+    // Software reset
+    lcd_cmd(ST7789_SWRESET);
+    vTaskDelay(pdMS_TO_TICKS(150));
+
+    // Sleep out
+    lcd_cmd(ST7789_SLPOUT); // Turn off the sleep mode
+    vTaskDelay(pdMS_TO_TICKS(120));
+
+    // Memory Data Access Control
+    lcd_cmd(ST7789_MADCTL); //Send COMMAND byte
+    uint8_t data = 0x00;
+    lcd_data(&data, 1); //Send DATA byte(s) for that command
+
+    // Interface Pixel Format - 16bit color (RGB565)
+    lcd_cmd(ST7789_COLMOD);
+    data = 0x55;
+    lcd_data(&data, 1);
+
+    // Normal display mode on
+    lcd_cmd(ST7789_NORON);
+    vTaskDelay(pdMS_TO_TICKS(10));
+
+    // Display on
+    lcd_cmd(ST7789_DISPON);
+    vTaskDelay(pdMS_TO_TICKS(10));
+}
+
+// Set the drawing window
+void lcd_set_window(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
+{
+    // Column address set
+    lcd_cmd(ST7789_CASET);
+    uint8_t data[4];
+    data[0] = (x0 >> 8) & 0xFF;
+    data[1] = x0 & 0xFF;
+    data[2] = (x1 >> 8) & 0xFF;
+    data[3] = x1 & 0xFF;
+    lcd_data(data, 4);
+
+    // Row address set
+    lcd_cmd(ST7789_RASET);
+    data[0] = (y0 >> 8) & 0xFF;
+    data[1] = y0 & 0xFF;
+    data[2] = (y1 >> 8) & 0xFF;
+    data[3] = y1 & 0xFF;
+    lcd_data(data, 4);
+
+    // Write to RAM
+    lcd_cmd(ST7789_RAMWR);
+}
+
+// Fill the screen with a color (RGB565 format)
+void lcd_fill_screen(uint16_t color)
+{
+    lcd_set_window(0, 0, LCD_WIDTH - 1, LCD_HEIGHT - 1);
+    
+    // Allocate buffer for a line
+    uint16_t *line_buf = heap_caps_malloc(LCD_WIDTH * sizeof(uint16_t), MALLOC_CAP_DMA);
+    if (line_buf == NULL) {
+        ESP_LOGE(TAG, "Failed to allocate line buffer");
+        return;
+    }
+
+    // Fill line buffer with color (swap bytes for RGB565)
+    uint16_t swapped_color = (color >> 8) | (color << 8);
+    for (int i = 0; i < LCD_WIDTH; i++) {
+        line_buf[i] = swapped_color;
+    }
+
+    // Send line by line
+    for (int y = 0; y < LCD_HEIGHT; y++) {
+        lcd_data((uint8_t*)line_buf, LCD_WIDTH * 2);
+    }
+
+    heap_caps_free(line_buf);
+}
+
+// Draw a filled rectangle
+void lcd_draw_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color)
+{
+    if (x >= LCD_WIDTH || y >= LCD_HEIGHT) return;
+    if (x + w > LCD_WIDTH) w = LCD_WIDTH - x;
+    if (y + h > LCD_HEIGHT) h = LCD_HEIGHT - y;
+
+    lcd_set_window(x, y, x + w - 1, y + h - 1);
+
+    uint16_t *line_buf = heap_caps_malloc(w * sizeof(uint16_t), MALLOC_CAP_DMA);
+    if (line_buf == NULL) {
+        ESP_LOGE(TAG, "Failed to allocate buffer");
+        return;
+    }
+
+    uint16_t swapped_color = (color >> 8) | (color << 8);
+    for (int i = 0; i < w; i++) {
+        line_buf[i] = swapped_color;
+    }
+
+    for (int i = 0; i < h; i++) {
+        lcd_data((uint8_t*)line_buf, w * 2);
+    }
+
+    heap_caps_free(line_buf);
+}
+
+// Draw a string at x, y position
+void lcd_draw_string(uint16_t x, uint16_t y, const char *str, uint16_t color, uint16_t bg_color)
+{
+    uint16_t current_x = x;
+    
+    while (*str) {
+        // Check if we need to wrap to next line
+        if (current_x + FONT_WIDTH > LCD_WIDTH) {
+            current_x = x;
+            y += FONT_HEIGHT + 2;  // Move to next line with 2px spacing
+            
+            // Check if we're going off screen
+            if (y + FONT_HEIGHT > LCD_HEIGHT) {
+                break;
+            }
+        }
+        
+        // Draw character
+        lcd_draw_char(current_x, y, *str, color, bg_color);
+        
+        // Move to next character position
+        current_x += FONT_WIDTH + FONT_SPACING;
+        str++;
+    }
+}

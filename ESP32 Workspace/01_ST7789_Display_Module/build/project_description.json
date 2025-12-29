@@ -1,7 +1,7 @@
 {
     "version":            "1.1",
     "project_name":       "01_ST7789_Display_Module",
-    "project_version":    "5920f9b-dirty",
+    "project_version":    "f0cb9f0-dirty",
     "project_path":       "E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module",
     "idf_path":           "E:/Espressif/frameworks/esp-idf-v5.3.1",
     "build_dir":          "E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module/build",
@@ -1180,8 +1180,8 @@
             "managed_reqs": [],
             "managed_priv_reqs": [],
             "file": "E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module/build/esp-idf/main/libmain.a",
-            "sources": [ "E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module/main/main.c" ],
-            "include_dirs": [ "." ]
+            "sources": [ "E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module/main/main.c", "E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module/main/st7789.c" ],
+            "include_dirs": [ ".", "../includes" ]
         },
         "mbedtls": {
             "alias": "idf::mbedtls",
@@ -2776,7 +2776,7 @@
             "priv_reqs": [],
             "managed_reqs": [],
             "managed_priv_reqs": [],
-            "include_dirs": [ "." ]
+            "include_dirs": [ ".", "../includes" ]
         }
     },
     "debug_prefix_map_gdbinit": ""
