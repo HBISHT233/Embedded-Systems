@@ -69,52 +69,50 @@ void lcd_spi_pre_transfer_callback(spi_transaction_t *t)
 
 
 // Draw a single character at x, y position
-void lcd_draw_char(uint16_t x, uint16_t y, char c, uint16_t color, uint16_t bg_color)
+void lcd_draw_char(
+    uint16_t x,
+    uint16_t y,
+    char c,
+    uint16_t color,
+    uint16_t bg_color,
+    uint8_t scale
+)
 {
-    // Check if character is in supported range
-    if (c < 32 || c > 126) {
-        c = '?';  // Replace unsupported characters with ?
-    }
-    
-    // Boundary check
-    if (x + FONT_WIDTH > LCD_WIDTH || y + FONT_HEIGHT > LCD_HEIGHT) {
-        return;
-    }
-    
-    // Get character bitmap
+    if (c < 32 || c > 126) c = '?';
+
+    uint16_t char_w = FONT_WIDTH * scale;
+    uint16_t char_h = FONT_HEIGHT * scale;
+
+    if (x + char_w > LCD_WIDTH || y + char_h > LCD_HEIGHT) return;
+
     const uint8_t *char_bitmap = font_5x7[c - 32];
-    
-    // Set window for the character
-    lcd_set_window(x, y, x + FONT_WIDTH - 1, y + FONT_HEIGHT - 1);
-    
-    // Allocate buffer for the character
-    uint16_t *char_buf = heap_caps_malloc(FONT_WIDTH * FONT_HEIGHT * sizeof(uint16_t), MALLOC_CAP_DMA);
-    if (char_buf == NULL) {
-        ESP_LOGE(TAG, "Failed to allocate char buffer");
+
+    lcd_set_window(x, y, x + char_w - 1, y + char_h - 1);
+
+    uint16_t *buf = heap_caps_malloc(char_w * char_h * sizeof(uint16_t), MALLOC_CAP_DMA);
+    if (!buf) {
+        ESP_LOGE(TAG, "Char buffer alloc failed");
         return;
     }
-    
-    // Swap bytes for RGB565
-    uint16_t swapped_color = (color >> 8) | (color << 8);
-    uint16_t swapped_bg = (bg_color >> 8) | (bg_color << 8);
-    
-    // Draw character bitmap
+
+    uint16_t fg = (color >> 8) | (color << 8);
+    uint16_t bg = (bg_color >> 8) | (bg_color << 8);
+
     int idx = 0;
+
     for (int row = 0; row < FONT_HEIGHT; row++) {
-        for (int col = 0; col < FONT_WIDTH; col++) {
-            // Check if pixel should be set (bit is 1)
-            if (char_bitmap[col] & (1 << row)) {
-                char_buf[idx++] = swapped_color;
-            } else {
-                char_buf[idx++] = swapped_bg;
+        for (int sy = 0; sy < scale; sy++) {
+            for (int col = 0; col < FONT_WIDTH; col++) {
+                uint16_t pixel = (char_bitmap[col] & (1 << row)) ? fg : bg;
+                for (int sx = 0; sx < scale; sx++) {
+                    buf[idx++] = pixel;
+                }
             }
         }
     }
-    
-    // Send character data
-    lcd_data((uint8_t*)char_buf, FONT_WIDTH * FONT_HEIGHT * 2);
-    
-    heap_caps_free(char_buf);
+
+    lcd_data((uint8_t *)buf, char_w * char_h * 2);
+    heap_caps_free(buf);
 }
 
 // Initialize the display
@@ -231,27 +229,37 @@ void lcd_draw_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t colo
 }
 
 // Draw a string at x, y position
-void lcd_draw_string(uint16_t x, uint16_t y, const char *str, uint16_t color, uint16_t bg_color)
+void lcd_draw_string(
+    uint16_t x,
+    uint16_t y,
+    const char *str,
+    uint16_t color,
+    uint16_t bg_color,
+    uint8_t scale
+)
 {
-    uint16_t current_x = x;
-    
+    uint16_t cx = x;
+
     while (*str) {
-        // Check if we need to wrap to next line
-        if (current_x + FONT_WIDTH > LCD_WIDTH) {
-            current_x = x;
-            y += FONT_HEIGHT + 2;  // Move to next line with 2px spacing
-            
-            // Check if we're going off screen
-            if (y + FONT_HEIGHT > LCD_HEIGHT) {
-                break;
-            }
+        if (cx + FONT_WIDTH * scale > LCD_WIDTH) {
+            cx = x;
+            y += (FONT_HEIGHT + 2) * scale;
+            if (y + FONT_HEIGHT * scale > LCD_HEIGHT) break;
         }
-        
-        // Draw character
-        lcd_draw_char(current_x, y, *str, color, bg_color);
-        
-        // Move to next character position
-        current_x += FONT_WIDTH + FONT_SPACING;
+
+        lcd_draw_char(cx, y, *str, color, bg_color, scale);
+        cx += (FONT_WIDTH + FONT_SPACING) * scale;
         str++;
+    }
+}
+
+void lcd_draw_image(uint16_t x, uint16_t y,
+                    uint16_t w, uint16_t h,
+                    const uint16_t *img)
+{
+    lcd_set_window(x, y, x + w - 1, y + h - 1);
+
+    for (int row = 0; row < h; row++) {
+        lcd_data((uint8_t *)&img[row * w], w * 2);
     }
 }

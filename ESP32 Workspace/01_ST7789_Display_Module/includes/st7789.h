@@ -19,7 +19,7 @@ extern spi_device_handle_t spi;
 #define PIN_NUM_MOSI    19  // SDK
 #define PIN_NUM_CLK     18  // SCL
 #define PIN_NUM_CS      10  // CS
-#define PIN_NUM_DC      8   // DC
+#define PIN_NUM_DC      4   // DC
 #define PIN_NUM_RST     9   // RST
 #define PIN_NUM_BL      7   // BL (Backlight)
 
@@ -53,8 +53,11 @@ void lcd_set_window(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
 void lcd_fill_screen(uint16_t color);
 void lcd_draw_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color);
 
-void lcd_draw_char(uint16_t x, uint16_t y, char c, uint16_t color, uint16_t bg_color);
-void lcd_draw_string(uint16_t x, uint16_t y, const char *str, uint16_t color, uint16_t bg_color);
+void lcd_draw_char(uint16_t x, uint16_t y, char c, uint16_t color, uint16_t bg_color,uint8_t scale);
+void lcd_draw_string(uint16_t x, uint16_t y, const char *str, uint16_t color, uint16_t bg_color,uint8_t scale);
+
+void lcd_draw_image(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *img);
+
 
 // Simple 5x7 bitmap font (ASCII 32-126)
 // Each character is 5 bytes, each byte represents a column
