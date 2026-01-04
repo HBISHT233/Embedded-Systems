@@ -1,27 +1,6 @@
-#include <stdio.h>
-#include <string.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "driver/spi_master.h"
-#include "driver/gpio.h"
-#include "esp_log.h"
-#include "st7789.h"
-#include "images.h"
+#include "common.h"
 
 static const char *TAG = "ST7789";
-
-
-
-// Color definitions (RGB565)
-#define COLOR_BLACK     0x0000
-#define COLOR_RED       0xF800
-#define COLOR_GREEN     0x07E0
-#define COLOR_BLUE      0x001F
-#define COLOR_WHITE     0xFFFF
-#define COLOR_YELLOW    0xFFE0
-#define COLOR_CYAN      0x07FF
-#define COLOR_MAGENTA   0xF81F
-
 
 void app_main(void)
 {
@@ -69,72 +48,130 @@ void app_main(void)
 
     // Initialize the LCD
     lcd_init();
+
     
     ESP_LOGI(TAG, "Display initialized successfully");
-
+    char buf[32];
     // Demo: Fill screen with different colors and draw shapes
     while (1) {
 
       // Draw full-screen image (240x240 example)
-        lcd_fill_screen(COLOR_BLACK);
-        lcd_draw_image(0, 0,240, 240,(const uint16_t *)om_img );
-        vTaskDelay(pdMS_TO_TICKS(10000));
-        // Example 1: Simple text
-        int i = 10;
-        char buf[20];
-        snprintf(buf, 20, "Outdoor Temp = %d ", i);
-        snprintf(buf, 20, buf,"℃");
-        ESP_LOGI(TAG, "Drawing text demo");
-        lcd_fill_screen(COLOR_BLACK);
-        lcd_draw_string(10, 10, buf, COLOR_WHITE, COLOR_BLACK,1);
-        lcd_draw_string(10, 19, "ESP32 Display", COLOR_CYAN, COLOR_BLACK,2);
-        lcd_draw_string(10, 34, "Text at X,Y", COLOR_YELLOW, COLOR_BLACK,3);
-        vTaskDelay(pdMS_TO_TICKS(3000));
+        lcd_cmd(ST7789_INVON);  // Turn ON inversion (or use INVOFF)));
 
-        // Example 2: Different colors
-        lcd_fill_screen(COLOR_BLUE);
-        lcd_draw_string(20, 20, "RED TEXT", COLOR_RED, COLOR_BLUE,1);
-        lcd_draw_string(20, 40, "GREEN TEXT", COLOR_GREEN, COLOR_BLUE,2);
-        lcd_draw_string(20, 60, "WHITE TEXT", COLOR_WHITE, COLOR_BLUE,3);
-        lcd_draw_string(20, 80, "YELLOW TEXT", COLOR_YELLOW, COLOR_BLUE,4);
-        vTaskDelay(pdMS_TO_TICKS(3000));
-
-        // Example 3: Multiple lines
-        lcd_fill_screen(COLOR_BLACK);
-        lcd_draw_string(5, 10, "Line 1: Hello!", COLOR_WHITE, COLOR_BLACK,1);
-        lcd_draw_string(5, 25, "Line 2: ESP32", COLOR_GREEN, COLOR_BLACK,2);
-        lcd_draw_string(5, 40, "Line 3: ST7789", COLOR_CYAN, COLOR_BLACK,3);
-        lcd_draw_string(5, 55, "Line 4: Display", COLOR_YELLOW, COLOR_BLACK,1);
-        lcd_draw_string(5, 70, "Line 5: Driver", COLOR_MAGENTA, COLOR_BLACK,2);
-        vTaskDelay(pdMS_TO_TICKS(3000));
-
-        // Example 4: Centered text
+        // Make a Background for Displaying Weather info
+        // Step-1: Create and Template for text and image
         lcd_fill_screen(COLOR_WHITE);
-        const char *msg = "CENTERED";
-        int text_width = strlen(msg) * (FONT_WIDTH + FONT_SPACING);
-        int center_x = (LCD_WIDTH - text_width) / 2;
-        int center_y = (LCD_HEIGHT - FONT_HEIGHT) / 2;
-        lcd_draw_string(center_x, center_y, msg, COLOR_RED, COLOR_WHITE,2);
-        vTaskDelay(pdMS_TO_TICKS(3000));
+        //lcd_fill_gradient(0x0000, 0x001F);
+        //lcd_draw_rect_empty(0,0,240,240,2,COLOR_BLACK);
+        //lcd_draw_rect_empty(0,50,240,2,2,COLOR_BLACK);
+        lcd_draw_rect_empty(0,160,240,2,2,COLOR_BLACK);
 
-        // Example 5: Numbers and symbols
-        lcd_fill_screen(COLOR_BLACK);
-        lcd_draw_string(10, 20, "0123456789", COLOR_WHITE, COLOR_BLACK,1);
-        lcd_draw_string(10, 40, "!@#$%^&*()", COLOR_CYAN, COLOR_BLACK,2);
-        lcd_draw_string(10, 60, "ABCDEFGHIJ", COLOR_GREEN, COLOR_BLACK,3);
-        lcd_draw_string(10, 80, "abcdefghij", COLOR_YELLOW, COLOR_BLACK,1);
-        vTaskDelay(pdMS_TO_TICKS(3000));
+        //Step-2: Display Temp and humidity values on screen
+        snprintf(buf, sizeof(buf), "Changwon");
+        lcd_draw_string(7, 12, buf, COLOR_BLACK, COLOR_WHITE,3);
+        lcd_draw_image_invert(170,7,30, 30,(const uint16_t *)korea_img);     
 
-        // Example 6: Text with shapes
-        lcd_fill_screen(COLOR_BLACK);
-        lcd_draw_rect(5, 5, 230, 30, COLOR_BLUE);
-        lcd_draw_string(15, 12, "TEXT IN BOX", COLOR_WHITE, COLOR_BLUE,1);
+
+        signed int data = 80;
+        snprintf(buf, sizeof(buf), "Humidity %d", data);
+        lcd_draw_string(5, 200, buf, COLOR_BLACK, COLOR_WHITE,2);
+        lcd_draw_image_invert(145, 190,22, 30,(const uint16_t *)humidity_img);
+
+        data = 35;
+        snprintf(buf, sizeof(buf), "Temp %d", data);
+        lcd_draw_string(5, 170, buf, COLOR_BLACK, COLOR_WHITE,2);
+        lcd_draw_string(105, 170, "o", COLOR_BLACK, COLOR_WHITE, 1);
+        lcd_draw_string(113, 170, "C", COLOR_BLACK, COLOR_WHITE, 2);
+        lcd_draw_image_invert(130, 163,12, 30,(const uint16_t *)temp_img );
+
+
+        //Step-3: Insert Images based on weather
+        draw_cartoon(data);
+        vTaskDelay(pdMS_TO_TICKS(5000));
+        draw_cartoon(-10);
+        vTaskDelay(pdMS_TO_TICKS(5000));
+        draw_cartoon(16);
+        vTaskDelay(pdMS_TO_TICKS(5000));
+        draw_cartoon(18);
+        vTaskDelay(pdMS_TO_TICKS(5000));
+        // // Example 1: Simple text
+        // int i = 10;
+        // snprintf(buf, 20, "Outdoor Temp = %d ", i);
+        // snprintf(buf, 20, buf,"℃");
+        // ESP_LOGI(TAG, "Drawing text demo");
+        // lcd_fill_screen(COLOR_BLACK);
+        // lcd_draw_string(10, 10, buf, COLOR_WHITE, COLOR_BLACK,1);
+        // lcd_draw_string(10, 19, "ESP32 Display", COLOR_CYAN, COLOR_BLACK,2);
+        // lcd_draw_string(10, 34, "Text at X,Y", COLOR_YELLOW, COLOR_BLACK,3);
+        // vTaskDelay(pdMS_TO_TICKS(3000));
+
+        // // Example 2: Different colors
+        // lcd_fill_screen(COLOR_BLUE);
+        // lcd_draw_string(20, 20, "RED TEXT", COLOR_RED, COLOR_BLUE,1);
+        // lcd_draw_string(20, 40, "GREEN TEXT", COLOR_GREEN, COLOR_BLUE,2);
+        // lcd_draw_string(20, 60, "WHITE TEXT", COLOR_WHITE, COLOR_BLUE,3);
+        // lcd_draw_string(20, 80, "YELLOW TEXT", COLOR_YELLOW, COLOR_BLUE,4);
+        // vTaskDelay(pdMS_TO_TICKS(3000));
+
+        // // Example 3: Multiple lines
+        // lcd_fill_screen(COLOR_BLACK);
+        // lcd_draw_string(5, 10, "Line 1: Hello!", COLOR_WHITE, COLOR_BLACK,1);
+        // lcd_draw_string(5, 25, "Line 2: ESP32", COLOR_GREEN, COLOR_BLACK,2);
+        // lcd_draw_string(5, 40, "Line 3: ST7789", COLOR_CYAN, COLOR_BLACK,3);
+        // lcd_draw_string(5, 55, "Line 4: Display", COLOR_YELLOW, COLOR_BLACK,1);
+        // lcd_draw_string(5, 70, "Line 5: Driver", COLOR_MAGENTA, COLOR_BLACK,2);
+        // vTaskDelay(pdMS_TO_TICKS(3000));
+
+        // // Example 4: Centered text
+        // lcd_fill_screen(COLOR_WHITE);
+        // const char *msg = "CENTERED";
+        // int text_width = strlen(msg) * (FONT_WIDTH + FONT_SPACING);
+        // int center_x = (LCD_WIDTH - text_width) / 2;
+        // int center_y = (LCD_HEIGHT - FONT_HEIGHT) / 2;
+        // lcd_draw_string(center_x, center_y, msg, COLOR_RED, COLOR_WHITE,2);
+        // vTaskDelay(pdMS_TO_TICKS(3000));
+
+        // // Example 5: Numbers and symbols
+        // lcd_fill_screen(COLOR_BLACK);
+        // lcd_draw_string(10, 20, "0123456789", COLOR_WHITE, COLOR_BLACK,1);
+        // lcd_draw_string(10, 40, "!@#$%^&*()", COLOR_CYAN, COLOR_BLACK,2);
+        // lcd_draw_string(10, 60, "ABCDEFGHIJ", COLOR_GREEN, COLOR_BLACK,3);
+        // lcd_draw_string(10, 80, "abcdefghij", COLOR_YELLOW, COLOR_BLACK,1);
+        // vTaskDelay(pdMS_TO_TICKS(3000));
+
+        // // Example 6: Text with shapes
+        // lcd_fill_screen(COLOR_BLACK);
+        // lcd_draw_rect(5, 5, 230, 30, COLOR_BLUE);
+        // lcd_draw_string(15, 12, "TEXT IN BOX", COLOR_WHITE, COLOR_BLUE,1);
         
-        lcd_draw_rect(5, 45, 230, 30, COLOR_RED);
-        lcd_draw_string(15, 52, "ANOTHER BOX", COLOR_WHITE, COLOR_RED,2);
+        // lcd_draw_rect(5, 45, 230, 30, COLOR_RED);
+        // lcd_draw_string(15, 52, "ANOTHER BOX", COLOR_WHITE, COLOR_RED,2);
         
-        lcd_draw_rect(5, 85, 230, 30, COLOR_GREEN);
-        lcd_draw_string(15, 92, "THIRD BOX!", COLOR_BLACK, COLOR_GREEN,3);
-        vTaskDelay(pdMS_TO_TICKS(3000));
+        // lcd_draw_rect(5, 85, 230, 30, COLOR_GREEN);
+        // lcd_draw_string(15, 92, "THIRD BOX!", COLOR_BLACK, COLOR_GREEN,3);
+        // vTaskDelay(pdMS_TO_TICKS(3000));
     }
+}
+
+void draw_cartoon(signed int temp){
+        if(temp>27){
+            lcd_draw_image_invert(130, 50,100, 100,(const uint16_t *)w_hot_img);
+            lcd_draw_image_invert(10, 50,100, 100,(const uint16_t *)sun_img);
+        }
+        else if(temp<0){
+            lcd_draw_image_invert(130, 50,100, 100,(const uint16_t *)w_snow_img);
+            lcd_draw_image_invert(10, 50,100, 100,(const uint16_t *)snow_img);
+        }
+        else if(temp>17){
+            lcd_draw_image_invert(130, 50,100, 100,(const uint16_t *)w_wind_img);
+            lcd_draw_image_invert(10, 50,100, 100,(const uint16_t *)hot_wind_img);
+        }
+        else if(temp<=17){
+            lcd_draw_image_invert(130, 50,100, 100,(const uint16_t *)w_wind_img);
+            lcd_draw_image_invert(10, 50,100, 100,(const uint16_t *)hot_wind_img);            
+        }
+        else{
+            lcd_draw_image_invert(130, 50,100, 100,(const uint16_t *)w_hot_img);
+            lcd_draw_image_invert(10, 50,100, 100,(const uint16_t *)sun_img);            
+        }
 }

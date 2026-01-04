@@ -1,7 +1,7 @@
 {
     "version":            "1.1",
     "project_name":       "01_ST7789_Display_Module",
-    "project_version":    "6d74172-dirty",
+    "project_version":    "5aa88ad-dirty",
     "project_path":       "E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module",
     "idf_path":           "E:/Espressif/frameworks/esp-idf-v5.3.1",
     "build_dir":          "E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module/build",
@@ -1180,8 +1180,8 @@
             "managed_reqs": [],
             "managed_priv_reqs": [],
             "file": "E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module/build/esp-idf/main/libmain.a",
-            "sources": [ "E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module/main/main.c", "E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module/main/st7789.c", "E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module/main/images.c", "E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module/build/om.bin.S" ],
-            "include_dirs": [ ".", "../includes" ]
+            "sources": [ "E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module/main/main.c", "E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module/main/st7789.c", "E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module/main/images.c", "E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module/build/temp.bin.S", "E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module/build/humidity.bin.S", "E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module/build/w_hot.bin.S", "E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module/build/w_rain.bin.S", "E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module/build/w_snow.bin.S", "E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module/build/w_wind.bin.S", "E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module/build/korea.bin.S", "E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module/build/sun.bin.S", "E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module/build/snow.bin.S", "E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module/build/rain.bin.S", "E:/Embedded-Systems/ESP32 Workspace/01_ST7789_Display_Module/build/hot_wind.bin.S" ],
+            "include_dirs": [ ".", "../includes", "../images" ]
         },
         "mbedtls": {
             "alias": "idf::mbedtls",
@@ -2776,7 +2776,7 @@
             "priv_reqs": [],
             "managed_reqs": [],
             "managed_priv_reqs": [],
-            "include_dirs": [ ".", "../includes" ]
+            "include_dirs": [ ".", "../includes", "../images" ]
         }
     },
     "debug_prefix_map_gdbinit": ""

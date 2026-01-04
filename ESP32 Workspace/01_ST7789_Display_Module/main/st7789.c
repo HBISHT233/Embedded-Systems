@@ -201,16 +201,88 @@ void lcd_fill_screen(uint16_t color)
     heap_caps_free(line_buf);
 }
 
+//Gradient Fill
+void lcd_fill_gradient(uint16_t start_color, uint16_t end_color)
+{
+    // 1. Set window to full screen
+    lcd_set_window(0, 0, LCD_WIDTH - 1, LCD_HEIGHT - 1);
+
+    // 2. Allocate buffer for ONE line (same as before)
+    uint16_t *line_buf = heap_caps_malloc(LCD_WIDTH * sizeof(uint16_t), MALLOC_CAP_DMA);
+    if (line_buf == NULL) {
+        ESP_LOGE(TAG, "Failed to allocate line buffer");
+        return;
+    }
+
+    // 3. Loop through every vertical line (y)
+    for (int y = 0; y < LCD_HEIGHT; y++) {
+        
+        // Calculate the "ratio" for this specific line (0 to 255)
+        // At y=0, ratio is 0. At y=Height, ratio is 255.
+        uint8_t ratio = (y * 255) / LCD_HEIGHT;
+
+        // Get the color for THIS row
+        uint16_t current_color = lerp_rgb565(start_color, end_color, ratio);
+
+        // Swap bytes (Little Endian -> Big Endian for LCD)
+        uint16_t swapped_color = (current_color >> 8) | (current_color << 8);
+
+        // Fill the line buffer with this new color
+        for (int x = 0; x < LCD_WIDTH; x++) {
+            line_buf[x] = swapped_color;
+        }
+
+        // Send this line to the display
+        lcd_data((uint8_t*)line_buf, LCD_WIDTH * 2);
+    }
+
+    // 4. Cleanup
+    heap_caps_free(line_buf);
+}
+
+// Helper: Linear Interpolation for RGB565 colors
+// ratio: 0 to 255 (0 = start_color, 255 = end_color)
+uint16_t lerp_rgb565(uint16_t start_color, uint16_t end_color, uint8_t ratio)
+{
+    // 1. Unpack Start Color (RGB565 -> R, G, B components)
+    uint16_t r1 = (start_color >> 11) & 0x1F; // 5 bits Red
+    uint16_t g1 = (start_color >> 5)  & 0x3F; // 6 bits Green
+    uint16_t b1 =  start_color        & 0x1F; // 5 bits Blue
+
+    // 2. Unpack End Color
+    uint16_t r2 = (end_color >> 11) & 0x1F;
+    uint16_t g2 = (end_color >> 5)  & 0x3F;
+    uint16_t b2 =  end_color        & 0x1F;
+
+    // 3. Interpolate (Mix) the components based on ratio
+    // Formula: result = start + (end - start) * ratio / 255
+    uint16_t r = r1 + ((int32_t)(r2 - r1) * ratio / 255);
+    uint16_t g = g1 + ((int32_t)(g2 - g1) * ratio / 255);
+    uint16_t b = b1 + ((int32_t)(b2 - b1) * ratio / 255);
+
+    // 4. Repack into RGB565
+    return (r << 11) | (g << 5) | b;
+}
+
 // Draw a filled rectangle
 void lcd_draw_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color)
 {
+    // It checks if the starting x or y coordinates are completely outside the visible screen area. 
+    //If so, it returns immediately to avoid errors.
     if (x >= LCD_WIDTH || y >= LCD_HEIGHT) return;
-    if (x + w > LCD_WIDTH) w = LCD_WIDTH - x;
-    if (y + h > LCD_HEIGHT) h = LCD_HEIGHT - y;
+    if (x + w > LCD_WIDTH) w = LCD_WIDTH - x; // Clipping the screen to fit
+    if (y + h > LCD_HEIGHT) h = LCD_HEIGHT - y; // Clipping the screen to fit
 
-    lcd_set_window(x, y, x + w - 1, y + h - 1);
+    lcd_set_window(x, y, x + w - 1, y + h - 1); //defining the "active area" or "address window."
+    /*The -1 is used because screen coordinates are usually 0-indexed
+    This tells the LCD: "I am about to send you pixels. Start at (x,y). Fill the width w.
+    Once you fill a row, automatically wrap around to the next row until you hit height h."
+    */
 
     uint16_t *line_buf = heap_caps_malloc(w * sizeof(uint16_t), MALLOC_CAP_DMA);
+    /*Instead of sending pixels one by one (slow) or allocating a huge buffer for the whole rectangle (memory intensive),
+     it allocates just enough memory for one horizontal row of the rectangle.
+     */
     if (line_buf == NULL) {
         ESP_LOGE(TAG, "Failed to allocate buffer");
         return;
@@ -219,14 +291,28 @@ void lcd_draw_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t colo
     uint16_t swapped_color = (color >> 8) | (color << 8);
     for (int i = 0; i < w; i++) {
         line_buf[i] = swapped_color;
+        //line_buf Memory: [ RED ] [ RED ] [ RED ] [ RED ] ... [ RED ]
     }
 
-    for (int i = 0; i < h; i++) {
-        lcd_data((uint8_t*)line_buf, w * 2);
+    for (int i = 0; i < h; i++) {  // iternate h time "Height of the rectangle"
+        lcd_data((uint8_t*)line_buf, w * 2); // 1 Pixel = 2 Bytes hence we are doing w*2
     }
 
     heap_caps_free(line_buf);
 }
+
+// Draw a filled rectangle
+void lcd_draw_rect_empty(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t thickness, uint16_t color)
+{
+    //(x,y) are the Top left corner of the rectangle that we want
+    // W= Horizontal Wdith of the rectangele
+    // h= Vertical Height of the rectangle
+    lcd_draw_rect(x,y,w,thickness,color); // Top Horizontal Line
+    lcd_draw_rect(x,y+h-thickness,w,thickness,color); // bottom Horizontal Line
+    lcd_draw_rect(x,y,thickness,h,color); // Left Vertical Line
+    lcd_draw_rect(x+w-thickness,y,thickness,h,color); // Right Vertical Line
+}
+
 
 // Draw a string at x, y position
 void lcd_draw_string(
@@ -263,3 +349,37 @@ void lcd_draw_image(uint16_t x, uint16_t y,
         lcd_data((uint8_t *)&img[row * w], w * 2);
     }
 }
+
+void lcd_draw_image_invert(uint16_t x, uint16_t y,
+                    uint16_t w, uint16_t h,
+                    const uint16_t *img)
+{
+    lcd_set_window(x, y, x + w - 1, y + h - 1);
+
+    /*
+    The color inversion is happening because your image data is already in RGB565 format, 
+    but you're not doing the byte swapping that the ST7789 expects. 
+    The ST7789 needs RGB565 data with swapped byte order (big-endian), but your image is likely in little-endian format.
+    */
+
+    // Allocate buffer for byte-swapped data
+    uint16_t *line_buf = heap_caps_malloc(w * sizeof(uint16_t), MALLOC_CAP_DMA);
+    if (line_buf == NULL) {
+        ESP_LOGE(TAG, "Failed to allocate image buffer");
+        return;
+    }
+
+    for (int row = 0; row < h; row++) {
+        // Swap bytes for each pixel in the row
+        for (int col = 0; col < w; col++) {
+            uint16_t pixel = img[row * w + col];
+            line_buf[col] = (pixel >> 8) | (pixel << 8);  // Swap bytes
+        }
+        
+        // Send the swapped row
+        lcd_data((uint8_t *)line_buf, w * 2);
+    }
+
+    heap_caps_free(line_buf);
+}
+

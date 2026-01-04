@@ -23,6 +23,16 @@ extern spi_device_handle_t spi;
 #define PIN_NUM_RST     9   // RST
 #define PIN_NUM_BL      7   // BL (Backlight)
 
+// Color definitions (RGB565)
+#define COLOR_BLACK     0x0000
+#define COLOR_RED       0xF800
+#define COLOR_GREEN     0x07E0
+#define COLOR_BLUE      0x001F
+#define COLOR_WHITE     0xFFFF
+#define COLOR_YELLOW    0xFFE0
+#define COLOR_CYAN      0x07FF
+#define COLOR_MAGENTA   0xF81F
+
 // Font dimensions (5x7 font)
 #define FONT_WIDTH      5
 #define FONT_HEIGHT     7
@@ -50,13 +60,19 @@ void lcd_data(const uint8_t *data, int len);
 void lcd_spi_pre_transfer_callback(spi_transaction_t *t);
 void lcd_init(void);
 void lcd_set_window(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
+
 void lcd_fill_screen(uint16_t color);
+void lcd_fill_gradient(uint16_t start_color, uint16_t end_color);
+
 void lcd_draw_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color);
+void lcd_draw_rect_empty(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t thickness, uint16_t color);
+uint16_t lerp_rgb565(uint16_t start_color, uint16_t end_color, uint8_t ratio);
 
 void lcd_draw_char(uint16_t x, uint16_t y, char c, uint16_t color, uint16_t bg_color,uint8_t scale);
 void lcd_draw_string(uint16_t x, uint16_t y, const char *str, uint16_t color, uint16_t bg_color,uint8_t scale);
 
 void lcd_draw_image(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *img);
+void lcd_draw_image_invert(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *img);
 
 
 // Simple 5x7 bitmap font (ASCII 32-126)

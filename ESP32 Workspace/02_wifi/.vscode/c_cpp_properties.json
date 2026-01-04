@@ -1,0 +1,20 @@
+{
+    "configurations": [
+        {
+            "name": "ESP32",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "E:/Espressif/frameworks/esp-idf-v5.3.1/components/**"
+            ],
+            "defines": [
+                "ESP_PLATFORM",
+                "CONFIG_FREERTOS_HZ=1000"  // Example, add more if needed
+            ],
+            "compilerPath": "E:/Espressif/tools/riscv32-esp-elf/esp-13.2.0_20240530/riscv32-esp-elf/bin/riscv32-esp-elf-gcc.exe",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-gcc-x64"
+        }
+    ],
+    "version": 4
+}
